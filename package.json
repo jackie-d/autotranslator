@@ -1,0 +1,12 @@
+{
+  "name": "translate-api",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "dependencies": {
+    "google-translate-api": "^2.3.0"
+  },
+  "devDependencies": {},
+  "author": "GD Software",
+  "license": "ISC"
+}
