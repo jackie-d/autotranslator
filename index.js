@@ -91,6 +91,7 @@ process.stdin.on('keypress', function (ch, key) {
 	});
   } else if (key && key.ctrl && key.name == 'c') {
   	console.log('Exit...');
+  	console.log(output);
   	process.exit();
   }
 });
