@@ -4,7 +4,10 @@
   "description": "",
   "main": "index.js",
   "dependencies": {
-    "google-translate-api": "^2.3.0"
+    "@vitalets/google-translate-api": "^3.0.0",
+    "free-proxy": "^0.1.6",
+    "keypress": "^0.2.1",
+    "tunnel": "0.0.6"
   },
   "devDependencies": {},
   "author": "GD Software",
