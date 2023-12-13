@@ -1,100 +1,60 @@
-const translate = require('@vitalets/google-translate-api');
-const process = require('process');
-const tunnel = require('tunnel');
-const ProxyList = require('free-proxy');
-const proxyList = new ProxyList();
-var keypress = require('keypress');
+import { translate } from '@vitalets/google-translate-api';
+import keypress from 'keypress';
+import promptSync from "prompt-sync";
+const prompt = promptSync()
 
+import { createRequire } from "module";
+const require = createRequire(import.meta.url);
 
-var langs = require('./langs.json');
+const inputTerms = require("./input.json");
 
-var output = "";
+const translatedTerms = {};
 
-var keys = Object.keys(langs);
+// set the languages for the translation
+let sourceLanguage;
+let destinationLanguage;
 
-var i = 0;
-
-let proxyURL = '';
-let proxyPort = 80;
-
-proxyList.random().then(proxy => {
-	console.log(proxy);
-	proxyURL = proxy.ip;
-	proxyPort = proxy.port;
-	tran(keys[i]);
-});
-
-function tran(key){
-	console.log("---"+key);
-	translate(
-		langs[key], 
-		{from: 'it', to: 'en'}, 
-		{
-		    agent: tunnel.httpsOverHttp({
-			    proxy: { 
-			      host: proxyURL,
-			      port: proxyPort+'',
-			      headers: {
-			        'User-Agent': 'Node'
-			      }
-			    }
-			})
-		}
-	).then(res => {
-	    output += "\""+key+"\" => \""+res.text+"\",\n";
-	    checkDone();
-	}).catch(err => {
-	    console.error(err);
-	    if (err.code == 'BAD_REQUEST' || err.code == 'BAD_NETWORK' ) {
-	    	proxyList.random().then(proxy => {
-				console.log(proxy);
-				proxyURL = proxy.ip;
-				proxyPort = proxy.port;
-				checkDone();
-			});
-	    } else {
-	    	checkDone();
-	    }
-	});
+if ( process.argv.length >= 3 ) {
+	sourceLanguage = process.argv[2];
+} else {
+	sourceLanguage = prompt("Which language are the terms to translate in? (it) ", "it");
+}
+if ( process.argv.length >= 4 ) {
+	sourceLanguage = process.argv[3];
+} else {
+	destinationLanguage = prompt("Which is the language of result for the terms? (en) ", "en");
 }
 
-function checkDone(){
-	i++;
-	if(keys.length > i){
-		var key = keys[i];
-		tran(key);
-		return;
-	}
-	done();
-}
-
-function done(){
-	console.log(output);
-}
-
-process.on('SIGINT', function() {
-    console.log(output);
-
-    process.exit();
-});
-
+// set the exit on CTRL+C
 keypress(process.stdin);
- 
-// listen for the "keypress" event
 process.stdin.on('keypress', function (ch, key) {
-  if (key && key.name == 'n') {
-  	console.log('Change proxy...');
-	proxyList.random().then(proxy => {
-		console.log(proxy);
-		proxyURL = proxy.ip;
-		proxyPort = proxy.port;
-	});
-  } else if (key && key.ctrl && key.name == 'c') {
-  	console.log('Exit...');
-  	console.log(output);
-  	process.exit();
-  }
+	if (key && key.ctrl && key.name == 'c') {
+		console.error('User terminated execution');
+		console.log(translatedTerms);
+		process.exit();
+  	}
 });
- 
 process.stdin.setRawMode(true);
 process.stdin.resume();
+
+// execute the translation
+for ( const key in inputTerms ) {
+	try {
+		const { text } = await translate( 
+			inputTerms[key], 
+			{
+				from: sourceLanguage,
+				to: destinationLanguage,
+
+			}
+		);
+		translatedTerms[key] = text;
+	} catch ( err ) {
+		if (err.code == 'BAD_REQUEST' || err.code == 'BAD_NETWORK' ) {
+			console.error(`Server didn\'t processed the request (key: ${key})`);
+			continue;
+		}
+	}
+}
+
+console.log(translatedTerms);
